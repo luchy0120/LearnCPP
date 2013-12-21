@@ -44,3 +44,23 @@ The literal `nullptr` represents the null pointer, that is, a pointer that does 
 	int* pi = nullptr;
 	double* pd = nullptr;
 	int i = nullptr;		// error: i is not a pointer
+
+There are differences in the definition of `NULL` in different implementations; for example, NULL might be 0 or 0L, In C, NULL is typically `(void*)0`, which makes it illegal in C++.
+
+	// I don't know how to raise this error
+	int *p = NULL;			// error: can not assign a void* to an int*
+
+Using `nullptr` makes code more readable than alternatives and avoids potential confusion when a function is overloaded to accpet either a pointer or an integer.
+
+##Arrays
+
+An array can be allocated statically, on the stack, and on the free store.
+
+	int a1[10];			// 10 ints in static storage
+
+	void f() {
+		int a2[20];		// 20 ints on the stack
+		int *p = new int[40];	// 40 ints on the free store
+	}
+
+
