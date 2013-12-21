@@ -27,6 +27,8 @@ The smallest object that can be independently allocated and pointed to using a b
 
 The notation used, `static_cast`, was designed to be ugly and easy to find in code.
 
+###void*
+
 The primary use for `void*` is for passing pointers to functions that are not allowed to make assumptions about the type of the object and for returnning untyped objects from functions. To use such an object, we must use explicit type conversion.
 
 Functions using `void*` pointers typically exist at the very low level of the system, where real hardware resources are manipulated. For example.
@@ -35,3 +37,10 @@ Functions using `void*` pointers typically exist at the very low level of the sy
 
 Pointers to functions and pointers to members can not be assigned to `void*`s.
 
+###nullptr
+
+The literal `nullptr` represents the null pointer, that is, a pointer that does not point to an object. It can be assigned to any pointer type, but not to other built-in types.
+
+	int* pi = nullptr;
+	double* pd = nullptr;
+	int i = nullptr;		// error: i is not a pointer
