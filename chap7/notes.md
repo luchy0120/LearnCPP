@@ -160,4 +160,39 @@ A string with the prefix `L` such as `L"angst"` is a string of wide characters. 
 
 ##Pointers into Arrays
 
+the integer value of `p+1` will be `sizeof(T)` larger than the integer value of `p`. For example:
+
+	template<typename T>
+	int byte_diff(T* p, T* q) {
+		return reinterprete_cast<char*>(q) - 
+			reinterprete_cast<char*>(p);
+	}
+
+###Pointers and const
+
+Many objects do not have their values changed after initialization:
+
+*	Symbolic constants lead to more maintainable code than using literals directly in code.
+*	Many pointers are often read through but never written through
+*	Most functions parameters are read but not written to.
+
+Note that `const` modifies a type: it restricts the ways in which an object can be used, rather than specifying how the constant is to be allocated.
+
+You can assign the address of a `non-cast` variable to be a pointer to constant because no harm can come from that. However , the address of a constant can not be assigned to an unrestricted pointer, because this would allow the object's value to be changed.
+
+	void f() {
+		int a = 1;
+		const int c = 2;
+		const int *p1 = &c;		// OK
+		const int *p2 = &a;		// OK
+		int *p3 = &c;			// error
+		*p3 = 7;				// try to change the value of c
+	}
+
+It is possible, but typically unwise, to explicitly remove the restrictions on a pointer to `const` by explicit type conversion.
+
+##Pointers and Ownership
+
+
+
 
