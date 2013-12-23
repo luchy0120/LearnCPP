@@ -63,4 +63,101 @@ An array can be allocated statically, on the stack, and on the free store.
 		int *p = new int[40];	// 40 ints on the free store
 	}
 
+###Array Initializers
+
+An array can be initialized by a list of values.
+
+	int v1[] = {1, 2, 3, 4};
+	char v2[] = {'a', 'b', 'c', 0};
+
+There is no built-in copy operation for arrays. You can not initialize one array with another (not even of exactly the same type), and there is no array assignment:
+
+	int v6[8] = v5;		// error, can not copy an array
+	v6 = v5;			// error, no array assignment
+
+You can not pass arrays by value
+
+The type of a string literal is "array of the appropriate number of const characters", so "abcd" is of type `const char[5]`
+
+In C and in older C++ code, you could assign a string literal to a non-const char*
+
+	void f() {
+		char *p = "Plato";		// error, but accepted in pre-c++11 standard code
+		p[4] = 'e';				// error, assignment to const
+	}
+
+If we want a string that we are guaranteed to be able to modify, we must place the characters in a non-const array:
+
+	void f() {
+		char p[] = "Zeno";		// p is an array of 5 char
+		p[0] = 'R';				// OK
+	}
+
+A string literal is statically allocated so that it is safe to return one from a function. For example:
+
+	const char* error_message(int i) {
+		// ...
+		return "range error";
+	}
+
+The memory holding "range error" will not go away after a call of error_message()
+
+Whether two identical string literals are allocated as one array or as two is implementaton defined:
+
+	const char* p = "Heraclitus";
+	const char* q = "Heraclitus";
+
+	void g() {
+		if (p == q) cout << "one" << endl;
+		// ...
+	}
+
+test in gcc 4.8.2 it is true;
+
+The empty string is written as a pair of adjacent double quotes, `""`, and has the type `const char[1]`. The one character of the empty string is the terminating `\0`
+
+Long strings can be broken by whitespace to make the program text neater. For example:
+
+	char alpha[] = "abcdefghijklmnopqrstuvwxyz"
+					"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+The compiler will concatenate adjacent strings.
+
+	string s = "\\w\\\\w";
+
+A raw string literal is a string literal where a backslash is just a backslash(and a double quote is just a double quote) so that our example becomes:
+
+	string s = R"(\w\\w)";
+
+Raw string literals use the `R("ccc")` notation for a sequence of characters `ccc`. The initial R is there to distinguish raw string literals from ordinary string literals. The parentheses are there to allow ("unescapted") double quotes. For example:
+
+	R"("quoted string")"
+
+So, how do we get the character sequence `)` into a raw string literal? Fortunately, that's rare problem, but `"(` and `)"` is only the default delimiter pair. we can add delimiters before the `(` and after the `)` in `(...)`. For example:
+	
+	R"***("quoted string containing the usual terminator("))")***"
+
+In contrast nonraw string literals, a raw string literal can contain a newline. For example:
+
+	string counts {R"(1
+		22
+		333)"};
+
+is equivalent to:
+
+	string x {"1\n22\n333"};
+
+A string with the prefix `L` such as `L"angst"` is a string of wide characters. Its type is `const wchar_t[]`. Similarly, a string with the prefix `LR` is a raw string.
+
+	"folder\\file";
+	R"(folder\file)";
+	u8"folder\\file";
+	u8R"(folder\file)";
+	u"folder\\file";
+	uR"(folder\file)";
+	U"folder\\file";
+	UR"(folder\file)";
+
+##Pointers into Arrays
+
 
