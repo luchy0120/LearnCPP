@@ -193,6 +193,183 @@ It is possible, but typically unwise, to explicitly remove the restrictions on a
 
 ##Pointers and Ownership
 
+A resource is something that has to be acquired and later released. Memory acquired by `new` and released by `delete` and files opened by `fopen` and closed by `fclose`.
 
+	void confused(int *p) {
+		// delete p?
+	}
+	
+	int global {7};
 
+	void f() {
+		X *pn = new int {7};
+		int i{7};
+		int q = &i;
+		confused(pn);
+		confused(q);
+		confused(&global);a
+	}
 
+If `confused` deletes p, the Program will seriously misbehave for the second two calls because we may not `delete` objects not allocated by `new`. If `confused` does not delete p, the program leaks.
+
+It is usually a good idea to immediately place a pointer that represents ownership in a resource handle class, such as `vector`, `string` and `unique_ptr`. That way, we can assume that every pointer that resource management in greater detail.
+
+##References
+
+Using a pointer differs from using the name of an object in a few ways:
+
+*	We use a different syntax, for example, `*p` instead of `obj` and `p->m` rather than `obj.m`.
+*	We can make a pointer point to different objects at different times.
+*	We must be more careful when using pointers than when using an object directly: a pointer may be a `nullptr` or point to an object that wasn't the one we expected.
+
+Like a pointer, a `reference` is an alias for an object, it usually implemented to hold a machine address of an object, and does not impose performance overhead compared to pointers, but it differs from a pointer in that:
+
+*	You access a reference with exactly the same syntax as the name of an object.
+*	A reference always refers to the object to which it was initialized.
+*	There is no "null reference", and we may assume that a reference refers to an object.
+
+The main use of reference is for specifying arguments and return values for functions in general and for overloaded operators in particular.
+
+	template<class T>
+	class Vector {
+		T* elem;
+		// ...
+	public:
+		T& operator[](int i) {return elem[i];}
+		const T& operator[](int i) const {return elem[i];}
+		void push_back(const T& a);
+	};
+
+	void f(const Vector<double>& v) {
+		double d1 = v[1];
+		v[2] = 7;
+
+		v.push_back(d1);
+	}
+
+To reflect the lvalue/rvalue and const/non-const distinctions, there are three kinds of references:
+
+*	`lvalue references`: to refer to objects whose value we want to change
+*	`const references`: to refer to objects whose value we do not want to change
+*	`rvalue references`: to refer to objects whose value we do not need to preserve after we have used it.
+
+Collectively, they are called references, the first two are both called lvalue references.
+
+###Lvalue References
+
+In a type name, the notation `X&` means "reference to X", It is used for references to lvalues. so it is often called an `lvalue references`.
+
+Initialization of a reference is something quite different from assignment to it. Despite appearances, no operator operates on a reference.
+
+	void g() {
+		int var = 0;
+		int& rr{var};
+		++rr;
+		int *pp = &rr;
+	}
+
+Here, `++rr` does not increment the reference `rr`, rather, `++` is applied to the `int` to which `rr` refers, that is, to `var`. Consequently, the value of a reference can not be changed after initialization; it always refers to the object it was initialized to denote. To get a pointer to the object denoted by a reference `rr`, we can write `&rr`. Thus, we can not have a pointer to a reference. Furthermore, we can not define an array of referenecs.
+
+The obvious implementation of a reference is as a (constant) pointer that is dereferenced each time it is used.
+
+Initialization of a reference is trivial when the initializer is an lvalue(an object whose address you can take). The initializer for a plain `T&` must be a lvaue of type T.
+
+The initializer for a `const T&` need not be an lvalue or even of type `T`. In such cases:
+
+1.	First, implicit type conversion to `T` is applied if necessary.
+2.	Then, the resulting value is placed in a temporary variable of type `T`
+3.	Finally, this temporary variable is used as the value of the initializer.
+
+Consider:
+
+	double& dr = 1;			// error, lvalue needed. 1 is prvalue
+	const double& cdr{1};	// OK
+
+The interpretation of this last initialization might be:
+	
+	double temp = double{1};
+	const double& cdr {temp};
+
+References to variables and references to constant are distinguished because introducing a temporary for a variable would have been highly error-prone; an assignment to the variable would become an assignment to the - soon-to-disappear - temporary. No such problem exist for references to constants, and references to constants are often important as function arguments.
+
+To keep program readaable, it is often best to avoid functions that modify their arguments. Instead, you can return a value from the function explicitly.
+
+References can also be used as return types. This is mostly used to define functions that can be used on both left-hand and right-hand sides of an assignment. 
+
+	map<int, char> m;
+	m[96] = 'a';		// left hand side
+	char c = m[96];		// right hand side
+
+###Rvalue References
+
+The basic idea of having more than one kind of reference is to support different uses of objects:
+
+*	A non-const lvalue reference refers to an object, to which the user of the reference can write.
+*	A const lvalue reference refers to a constant, which is immutable from the point of view of the user of the reference.
+*	An rvalue reference refers to a temporary object, which the user of the reference can (and typically will) modify, assuming that the object will never be used again.
+
+An rvalue reference can bind to an rvalue, but not to an lvalue. In that, an rvalue reference is exactly opposite to an lvalue reference.
+
+	string var{"Cambrige"};
+	string f();
+
+	string& r1 {var};			// lvalue reference, bind r1 to var (an lvalue)
+	string& r2 {f()};			// lvalue reference. error: f() is an rvalue
+	string& r3 {"Princeton";}	// lvalue reference, error: can not bind to temporary
+	
+	string&& rr1 {f()};			// rvalue reference, fine: bind rr1 to rvalue(a temporary)
+	string&& rr2 {var};			// rvalue reference, error: var is an lvalue
+	string&& rr3 {"Oxford"};	// rr3 refers to a temporary holding "Oxford";
+
+We do not use `const` rvalue references; Both a const lvalue reference and an rvalue reference can bind to an rvalue.
+
+*	We use rvalue reference to implement a `destructive read` for optimization of what would otherwise have required a copy.
+*	We use const lvalue reference to prevent modification of an argument.
+
+Sometimes, a programmer knowns that an object won't be used again, even though the compiler does not. Consider:
+
+	template<class T>
+	swap(T& a, T& b) {
+		T tmp {a};
+		a = b;
+		b = tmp;
+	}
+
+Can be changed to(only swap lvalues):
+
+	template<class T>
+	void swap(T& a, T& b) {
+		T tmp {static_cast<T&&>(a)};
+		a = static_cast<T&&>(b);
+		b = static_cast<T&&>(tmp)
+	}
+
+`vector` has move constructor:
+
+	vector<string> s;
+	vector<string> s2 {s};				// s is an lvalue, so use copy constructor
+	vector<string> s3 {s + "tail"};		// s + "tail" is an rvalue, so pick move constructor
+
+`move(x)` does not move x(it simply produces an rvalue reference to x), it would have been bettern if `move(x)` had been called `rval()`, but by now `move()` has been used for years.
+
+###References to References
+
+If you take a reference to a reference to a type, you get a reference to that type, rather than some kind of special reference to reference type.
+
+	using rr_i = int&&;
+	using lt_i = int&;
+	using rr_rr_i = rr_i&&;			// int&& && is an int&&
+	using lr_rr_i = rr_i&;			// int&& & is an int&
+	using rr_lr_i = lr_i&&;			// int& && is an int&
+	using lr_lr_i = lr_i&;			// int& & is an int&
+
+In other words, lvalue reference always wins. This makes sense: nothing we can do with types can change the fact that an lvalue reference refers to an lvalue. This is sometimes known as reference collapse.
+
+The syntax does not allow: `int && & r = i;
+
+###Pointers and References
+
+You can not create null reference:
+
+	char* ident(char* p) {return p;}
+	char& r {*ident(nullptr)};		// invalid code
