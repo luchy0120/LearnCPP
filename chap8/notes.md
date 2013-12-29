@@ -45,4 +45,80 @@ A `struct` is simply a `class` where the members are `public` by default. So, a 
 
 ###Structures and Arrays
 
+The main advantages of 	`std::array` over a built-in array are that it is a proper object type(has assignment, etc.) and does not implicitly convert to a pointer to an individual element:
+	
+The disadvantage of `std::array` compared to a built-in array is that we can not deduce the number of elements from the length of the initializer.
 
+	array<Point> point3 = {{1, 2}, {3, 4}, {5, 6}};	// error: number of elements not given
+
+###Type Equivalence
+
+The structs are different types even when they have the same members.
+
+	struct S1 {int a; };
+	struct S2 {int a; };
+	S1 x;
+	S2 y = x;		// error: type mismatch
+
+A struct is also a different type from a type used as a member.
+
+###Plain Old Data
+
+a POD(plain old data) is an object that can be manipulated as "just data" without worrying about complications of class layouts or user-defined semantics for construction, copy, and move.
+
+For us to manipulate an object as "just data", the object must:
+
+*	not have a complicated layout(eg. with a vptr)
+*	not have nonstandard(user-defined) copy semantics, and
+*	have a trivial default constructor.
+
+a pod object must be of:
+
+*	a standard layout type, and
+*	a trivially copyable type,(trivial type is a type with a trivial default constructor and a trivial copy and move operations)
+*	a type with a trivial default constructor
+
+Standard layout:
+
+*	has a non-static member or a base that is not standard layout.
+*	has a virtual function
+*	has a virtual base
+*	has a member that is a reference
+*	has multiple access specifiers for non-static data members or
+*	prevents important layout optimizations(by having non-static data members in more than one base class or in both the derived class and reference, or by having a base class of the same type as the first non-static data member)
+
+The `is_pod` is a standard-library property predicate defined in `<type_traits>` allowing us to ask the question "Is T a POD" in our code. The base thing about `is_pod<T>` is that it saves us from remembering the exact rules for what a POD is.
+
+	template<typename T>
+	void mycopy(T* to, const T* from, int count)
+	{
+		if (is_pod<T>::value) {
+			memcpy(to, from, count * sizeof(T));
+		} else {
+			for (int i = 0; i != count; ++i) {
+				to[i] = from[i];
+			}
+		}
+	}
+
+Note that adding or subtracting non-default constructors does not affect layout or performance(that was not true in C++98)
+
+###Fields
+
+	struct PPN {
+		unsigned int PEN : 22;
+		int: 3;								// unnamed fields
+		unsigned int CCA : 3;
+		bool nonreachable : 1;
+		boo dirty : 1;
+		bool valid : 1;
+		bool global : 1;
+	};
+
+A field is often called a bit-field, a member is defined to be a field by specifying the number of bits it is to occupy. Unnamed fields are allowed.
+
+A field muse be of an integral or enumeration type. It is not possible to take the address of a field. Apart from that, however, it can be used exactly like other variables. Note that a bool field really can be represented by a single bit.
+
+Using fields to pack several variables into a single byte does not necessarily save space, it saves data space. but the size of the code needed to manipulated these variables increases on most machines.
+
+##Unions
