@@ -122,3 +122,27 @@ A field muse be of an integral or enumeration type. It is not possible to take t
 Using fields to pack several variables into a single byte does not necessarily save space, it saves data space. but the size of the code needed to manipulated these variables increases on most machines.
 
 ##Unions
+
+a union is a struct in which all members are allocated at the same address so that the union occupies only as mush space as its largest member. Naturally, a union can hold a value for only one member at a time. 
+
+Use of unions can be essential for compactness of data and through that for performance. However, most programs do not improve much from the use of `unions` and `unions` are rather error-prone. Consequently, I consider unions an overused feature; avoid them when you can.
+
+###Unions and Classes
+
+*	A union can not have virtual functions
+*	A union can not have members of reference type
+*	A union can not have base classes
+*	If a union has a member with a user-defined constructor, a copy operation, a move operation, or a destructor, then the special function is deleted for that union; that is, it can not be used for an object of the union type.
+*	At most one member of a union can have an in-class initializer
+*	A union can not be used as a base class
+
+It is possible to specify an in-class initializer for at most one member. If so, this initializer will be used for default initialization.
+
+	union U2 {
+		int a;
+		const char* p {""};
+	};
+
+###Anonymous unions
+
+
