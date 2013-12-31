@@ -1,0 +1,305 @@
+<h2>Pointers</h2>
+<p>The fundamental operation on a poiner is <code>dereferencing</code>, that is, referring to the object pointed to by the pointer. This operation is also called <code>indirection</code>. The dereferencing operator is (prefix) unary <code>*</code>.</p>
+<p>The smallest object that can be independently allocated and pointed to using a built-in pointer type is a <code>char</code>, Note that a <code>bool</code> occupies at least as musch space as a <code>char</code>. To store smaller values more compactly, you can use the bit-wise logical operations, bit-fields in structures or a <code>bitset</code></p>
+<pre><code>int *pi;            // pointer to int
+char **ppc;         // pointer to pointer to char
+int *ap[15];        // array of 15 pointers to ints
+int (*fp)(char*);   // pointer to function taking a char* argument; returns an int
+int *f(char*);      // function taking a char* argument; returns a pointer to int
+</code></pre>
+<p><code>void*</code> read as "pointer to an object of unknown type"</p>
+<pre><code>void f(int *pi) {
+    void *pv = pi;      // OK
+    *pv;                // error, can not dereference void*
+    ++pv;               // error, can not increment void*
+
+    // explicit conversion back to int *
+    int *pi2 = static_cast&lt;int*&gt;(pv);
+
+    double *pd1 = pv;   // error
+    double *pd2 = pi;   // error
+    double *pd3 = static_cast&lt;double*&gt;(pv); // unsafe
+}
+</code></pre>
+<p>The notation used, <code>static_cast</code>, was designed to be ugly and easy to find in code.</p>
+<h3>void*</h3>
+<p>The primary use for <code>void*</code> is for passing pointers to functions that are not allowed to make assumptions about the type of the object and for returnning untyped objects from functions. To use such an object, we must use explicit type conversion.</p>
+<p>Functions using <code>void*</code> pointers typically exist at the very low level of the system, where real hardware resources are manipulated. For example.</p>
+<pre><code>void* my_alloc(size_t n);
+</code></pre>
+<p>Pointers to functions and pointers to members can not be assigned to <code>void*</code>s.</p>
+<h3>nullptr</h3>
+<p>The literal <code>nullptr</code> represents the null pointer, that is, a pointer that does not point to an object. It can be assigned to any pointer type, but not to other built-in types.</p>
+<pre><code>int* pi = nullptr;
+double* pd = nullptr;
+int i = nullptr;        // error: i is not a pointer
+</code></pre>
+<p>There are differences in the definition of <code>NULL</code> in different implementations; for example, NULL might be 0 or 0L, In C, NULL is typically <code>(void*)0</code>, which makes it illegal in C++.</p>
+<pre><code>// I don't know how to raise this error
+int *p = NULL;          // error: can not assign a void* to an int*
+</code></pre>
+<p>Using <code>nullptr</code> makes code more readable than alternatives and avoids potential confusion when a function is overloaded to accpet either a pointer or an integer.</p>
+<h2>Arrays</h2>
+<p>An array can be allocated statically, on the stack, and on the free store.</p>
+<pre><code>int a1[10];         // 10 ints in static storage
+
+void f() {
+    int a2[20];     // 20 ints on the stack
+    int *p = new int[40];   // 40 ints on the free store
+}
+</code></pre>
+<h3>Array Initializers</h3>
+<p>An array can be initialized by a list of values.</p>
+<pre><code>int v1[] = {1, 2, 3, 4};
+char v2[] = {'a', 'b', 'c', 0};
+</code></pre>
+<p>There is no built-in copy operation for arrays. You can not initialize one array with another (not even of exactly the same type), and there is no array assignment:</p>
+<pre><code>int v6[8] = v5;     // error, can not copy an array
+v6 = v5;            // error, no array assignment
+</code></pre>
+<p>You can not pass arrays by value</p>
+<p>The type of a string literal is "array of the appropriate number of const characters", so "abcd" is of type <code>const char[5]</code></p>
+<p>In C and in older C++ code, you could assign a string literal to a non-const char*</p>
+<pre><code>void f() {
+    char *p = "Plato";      // error, but accepted in pre-c++11 standard code
+    p[4] = 'e';             // error, assignment to const
+}
+</code></pre>
+<p>If we want a string that we are guaranteed to be able to modify, we must place the characters in a non-const array:</p>
+<pre><code>void f() {
+    char p[] = "Zeno";      // p is an array of 5 char
+    p[0] = 'R';             // OK
+}
+</code></pre>
+<p>A string literal is statically allocated so that it is safe to return one from a function. For example:</p>
+<pre><code>const char* error_message(int i) {
+    // ...
+    return "range error";
+}
+</code></pre>
+<p>The memory holding "range error" will not go away after a call of error_message()</p>
+<p>Whether two identical string literals are allocated as one array or as two is implementaton defined:</p>
+<pre><code>const char* p = "Heraclitus";
+const char* q = "Heraclitus";
+
+void g() {
+    if (p == q) cout &lt;&lt; "one" &lt;&lt; endl;
+    // ...
+}
+</code></pre>
+<p>test in gcc 4.8.2 it is true;</p>
+<p>The empty string is written as a pair of adjacent double quotes, <code>""</code>, and has the type <code>const char[1]</code>. The one character of the empty string is the terminating <code>\0</code></p>
+<p>Long strings can be broken by whitespace to make the program text neater. For example:</p>
+<pre><code>char alpha[] = "abcdefghijklmnopqrstuvwxyz"
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+</code></pre>
+<p>The compiler will concatenate adjacent strings.</p>
+<pre><code>string s = "\\w\\\\w";
+</code></pre>
+<p>A raw string literal is a string literal where a backslash is just a backslash(and a double quote is just a double quote) so that our example becomes:</p>
+<pre><code>string s = R"(\w\\w)";
+</code></pre>
+<p>Raw string literals use the <code>R("ccc")</code> notation for a sequence of characters <code>ccc</code>. The initial R is there to distinguish raw string literals from ordinary string literals. The parentheses are there to allow ("unescapted") double quotes. For example:</p>
+<pre><code>R"("quoted string")"
+</code></pre>
+<p>So, how do we get the character sequence <code>)</code> into a raw string literal? Fortunately, that's rare problem, but <code>"(</code> and <code>)"</code> is only the default delimiter pair. we can add delimiters before the <code>(</code> and after the <code>)</code> in <code>(...)</code>. For example:</p>
+<pre><code>R"***("quoted string containing the usual terminator("))")***"
+</code></pre>
+<p>In contrast nonraw string literals, a raw string literal can contain a newline. For example:</p>
+<pre><code>string counts {R"(1
+    22
+    333)"};
+</code></pre>
+<p>is equivalent to:</p>
+<pre><code>string x {"1\n22\n333"};
+</code></pre>
+<p>A string with the prefix <code>L</code> such as <code>L"angst"</code> is a string of wide characters. Its type is <code>const wchar_t[]</code>. Similarly, a string with the prefix <code>LR</code> is a raw string.</p>
+<pre><code>"folder\\file";
+R"(folder\file)";
+u8"folder\\file";
+u8R"(folder\file)";
+u"folder\\file";
+uR"(folder\file)";
+U"folder\\file";
+UR"(folder\file)";
+</code></pre>
+<h2>Pointers into Arrays</h2>
+<p>the integer value of <code>p+1</code> will be <code>sizeof(T)</code> larger than the integer value of <code>p</code>. For example:</p>
+<pre><code>template&lt;typename T&gt;
+int byte_diff(T* p, T* q) {
+    return reinterprete_cast&lt;char*&gt;(q) - 
+        reinterprete_cast&lt;char*&gt;(p);
+}
+</code></pre>
+<h3>Pointers and const</h3>
+<p>Many objects do not have their values changed after initialization:</p>
+<ul>
+<li>Symbolic constants lead to more maintainable code than using literals directly in code.</li>
+<li>Many pointers are often read through but never written through</li>
+<li>Most functions parameters are read but not written to.</li>
+</ul>
+<p>Note that <code>const</code> modifies a type: it restricts the ways in which an object can be used, rather than specifying how the constant is to be allocated.</p>
+<p>You can assign the address of a <code>non-cast</code> variable to be a pointer to constant because no harm can come from that. However , the address of a constant can not be assigned to an unrestricted pointer, because this would allow the object's value to be changed.</p>
+<pre><code>void f() {
+    int a = 1;
+    const int c = 2;
+    const int *p1 = &amp;c;     // OK
+    const int *p2 = &amp;a;     // OK
+    int *p3 = &amp;c;           // error
+    *p3 = 7;                // try to change the value of c
+}
+</code></pre>
+<p>It is possible, but typically unwise, to explicitly remove the restrictions on a pointer to <code>const</code> by explicit type conversion.</p>
+<h2>Pointers and Ownership</h2>
+<p>A resource is something that has to be acquired and later released. Memory acquired by <code>new</code> and released by <code>delete</code> and files opened by <code>fopen</code> and closed by <code>fclose</code>.</p>
+<pre><code>void confused(int *p) {
+    // delete p?
+}
+
+int global {7};
+
+void f() {
+    X *pn = new int {7};
+    int i{7};
+    int q = &amp;i;
+    confused(pn);
+    confused(q);
+    confused(&amp;global);a
+}
+</code></pre>
+<p>If <code>confused</code> deletes p, the Program will seriously misbehave for the second two calls because we may not <code>delete</code> objects not allocated by <code>new</code>. If <code>confused</code> does not delete p, the program leaks.</p>
+<p>It is usually a good idea to immediately place a pointer that represents ownership in a resource handle class, such as <code>vector</code>, <code>string</code> and <code>unique_ptr</code>. That way, we can assume that every pointer that resource management in greater detail.</p>
+<h2>References</h2>
+<p>Using a pointer differs from using the name of an object in a few ways:</p>
+<ul>
+<li>We use a different syntax, for example, <code>*p</code> instead of <code>obj</code> and <code>p-&gt;m</code> rather than <code>obj.m</code>.</li>
+<li>We can make a pointer point to different objects at different times.</li>
+<li>We must be more careful when using pointers than when using an object directly: a pointer may be a <code>nullptr</code> or point to an object that wasn't the one we expected.</li>
+</ul>
+<p>Like a pointer, a <code>reference</code> is an alias for an object, it usually implemented to hold a machine address of an object, and does not impose performance overhead compared to pointers, but it differs from a pointer in that:</p>
+<ul>
+<li>You access a reference with exactly the same syntax as the name of an object.</li>
+<li>A reference always refers to the object to which it was initialized.</li>
+<li>There is no "null reference", and we may assume that a reference refers to an object.</li>
+</ul>
+<p>The main use of reference is for specifying arguments and return values for functions in general and for overloaded operators in particular.</p>
+<pre><code>template&lt;class T&gt;
+class Vector {
+    T* elem;
+    // ...
+public:
+    T&amp; operator[](int i) {return elem[i];}
+    const T&amp; operator[](int i) const {return elem[i];}
+    void push_back(const T&amp; a);
+};
+
+void f(const Vector&lt;double&gt;&amp; v) {
+    double d1 = v[1];
+    v[2] = 7;
+
+    v.push_back(d1);
+}
+</code></pre>
+<p>To reflect the lvalue/rvalue and const/non-const distinctions, there are three kinds of references:</p>
+<ul>
+<li><code>lvalue references</code>: to refer to objects whose value we want to change</li>
+<li><code>const references</code>: to refer to objects whose value we do not want to change</li>
+<li><code>rvalue references</code>: to refer to objects whose value we do not need to preserve after we have used it.</li>
+</ul>
+<p>Collectively, they are called references, the first two are both called lvalue references.</p>
+<h3>Lvalue References</h3>
+<p>In a type name, the notation <code>X&amp;</code> means "reference to X", It is used for references to lvalues. so it is often called an <code>lvalue references</code>.</p>
+<p>Initialization of a reference is something quite different from assignment to it. Despite appearances, no operator operates on a reference.</p>
+<pre><code>void g() {
+    int var = 0;
+    int&amp; rr{var};
+    ++rr;
+    int *pp = &amp;rr;
+}
+</code></pre>
+<p>Here, <code>++rr</code> does not increment the reference <code>rr</code>, rather, <code>++</code> is applied to the <code>int</code> to which <code>rr</code> refers, that is, to <code>var</code>. Consequently, the value of a reference can not be changed after initialization; it always refers to the object it was initialized to denote. To get a pointer to the object denoted by a reference <code>rr</code>, we can write <code>&amp;rr</code>. Thus, we can not have a pointer to a reference. Furthermore, we can not define an array of referenecs.</p>
+<p>The obvious implementation of a reference is as a (constant) pointer that is dereferenced each time it is used.</p>
+<p>Initialization of a reference is trivial when the initializer is an lvalue(an object whose address you can take). The initializer for a plain <code>T&amp;</code> must be a lvaue of type T.</p>
+<p>The initializer for a <code>const T&amp;</code> need not be an lvalue or even of type <code>T</code>. In such cases:</p>
+<ol>
+<li>First, implicit type conversion to <code>T</code> is applied if necessary.</li>
+<li>Then, the resulting value is placed in a temporary variable of type <code>T</code></li>
+<li>Finally, this temporary variable is used as the value of the initializer.</li>
+</ol>
+<p>Consider:</p>
+<pre><code>double&amp; dr = 1;         // error, lvalue needed. 1 is prvalue
+const double&amp; cdr{1};   // OK
+</code></pre>
+<p>The interpretation of this last initialization might be:</p>
+<pre><code>double temp = double{1};
+const double&amp; cdr {temp};
+</code></pre>
+<p>References to variables and references to constant are distinguished because introducing a temporary for a variable would have been highly error-prone; an assignment to the variable would become an assignment to the - soon-to-disappear - temporary. No such problem exist for references to constants, and references to constants are often important as function arguments.</p>
+<p>To keep program readaable, it is often best to avoid functions that modify their arguments. Instead, you can return a value from the function explicitly.</p>
+<p>References can also be used as return types. This is mostly used to define functions that can be used on both left-hand and right-hand sides of an assignment. </p>
+<pre><code>map&lt;int, char&gt; m;
+m[96] = 'a';        // left hand side
+char c = m[96];     // right hand side
+</code></pre>
+<h3>Rvalue References</h3>
+<p>The basic idea of having more than one kind of reference is to support different uses of objects:</p>
+<ul>
+<li>A non-const lvalue reference refers to an object, to which the user of the reference can write.</li>
+<li>A const lvalue reference refers to a constant, which is immutable from the point of view of the user of the reference.</li>
+<li>An rvalue reference refers to a temporary object, which the user of the reference can (and typically will) modify, assuming that the object will never be used again.</li>
+</ul>
+<p>An rvalue reference can bind to an rvalue, but not to an lvalue. In that, an rvalue reference is exactly opposite to an lvalue reference.</p>
+<pre><code>string var{"Cambrige"};
+string f();
+
+string&amp; r1 {var};           // lvalue reference, bind r1 to var (an lvalue)
+string&amp; r2 {f()};           // lvalue reference. error: f() is an rvalue
+string&amp; r3 {"Princeton";}   // lvalue reference, error: can not bind to temporary
+
+string&amp;&amp; rr1 {f()};         // rvalue reference, fine: bind rr1 to rvalue(a temporary)
+string&amp;&amp; rr2 {var};         // rvalue reference, error: var is an lvalue
+string&amp;&amp; rr3 {"Oxford"};    // rr3 refers to a temporary holding "Oxford";
+</code></pre>
+<p>We do not use <code>const</code> rvalue references; Both a const lvalue reference and an rvalue reference can bind to an rvalue.</p>
+<ul>
+<li>We use rvalue reference to implement a <code>destructive read</code> for optimization of what would otherwise have required a copy.</li>
+<li>We use const lvalue reference to prevent modification of an argument.</li>
+</ul>
+<p>Sometimes, a programmer knowns that an object won't be used again, even though the compiler does not. Consider:</p>
+<pre><code>template&lt;class T&gt;
+swap(T&amp; a, T&amp; b) {
+    T tmp {a};
+    a = b;
+    b = tmp;
+}
+</code></pre>
+<p>Can be changed to(only swap lvalues):</p>
+<pre><code>template&lt;class T&gt;
+void swap(T&amp; a, T&amp; b) {
+    T tmp {static_cast&lt;T&amp;&amp;&gt;(a)};
+    a = static_cast&lt;T&amp;&amp;&gt;(b);
+    b = static_cast&lt;T&amp;&amp;&gt;(tmp)
+}
+</code></pre>
+<p><code>vector</code> has move constructor:</p>
+<pre><code>vector&lt;string&gt; s;
+vector&lt;string&gt; s2 {s};              // s is an lvalue, so use copy constructor
+vector&lt;string&gt; s3 {s + "tail"};     // s + "tail" is an rvalue, so pick move constructor
+</code></pre>
+<p><code>move(x)</code> does not move x(it simply produces an rvalue reference to x), it would have been bettern if <code>move(x)</code> had been called <code>rval()</code>, but by now <code>move()</code> has been used for years.</p>
+<h3>References to References</h3>
+<p>If you take a reference to a reference to a type, you get a reference to that type, rather than some kind of special reference to reference type.</p>
+<pre><code>using rr_i = int&amp;&amp;;
+using lt_i = int&amp;;
+using rr_rr_i = rr_i&amp;&amp;;         // int&amp;&amp; &amp;&amp; is an int&amp;&amp;
+using lr_rr_i = rr_i&amp;;          // int&amp;&amp; &amp; is an int&amp;
+using rr_lr_i = lr_i&amp;&amp;;         // int&amp; &amp;&amp; is an int&amp;
+using lr_lr_i = lr_i&amp;;          // int&amp; &amp; is an int&amp;
+</code></pre>
+<p>In other words, lvalue reference always wins. This makes sense: nothing we can do with types can change the fact that an lvalue reference refers to an lvalue. This is sometimes known as reference collapse.</p>
+<p>The syntax does not allow: `int &amp;&amp; &amp; r = i;</p>
+<h3>Pointers and References</h3>
+<p>You can not create null reference:</p>
+<pre><code>char* ident(char* p) {return p;}
+char&amp; r {*ident(nullptr)};      // invalid code
+</code></pre>
