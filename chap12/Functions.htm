@@ -1,0 +1,244 @@
+<p>The type of a function consists of the return type and the argument types. For class member functions, the name of the class is also part of the function type.</p>
+<p>In addition to specifying a name, a set of arguments, and a return type, a function declaration can contain a variety of specifiers and modifiers. In all we can have:</p>
+<ul>
+<li>The name of the function; required</li>
+<li>The argument list, which maybe empty <code>()</code>; require</li>
+<li>The return type, which may be <code>void</code> and which may be prefix or suffix(using <code>auto</code>); required</li>
+<li><code>inline</code>, indicating a desire to have function calls implemented by inlining the function body</li>
+<li><code>constexpr</code>, indicating that it should be possible to evalutate the function at compile time if given constant expression arguments</li>
+<li><code>noexcept</code>, indicating that the function may not throw an exception</li>
+<li>A linkage specification, for example, <code>static</code></li>
+<li>[[noreturn]], indicating that the function will not return using the normal call/return mechanism</li>
+</ul>
+<p>In addition, a member function may be specified as:</p>
+<ul>
+<li><code>virtual</code>, indicating that it can be overridden in a derived class.</li>
+<li><code>override</code>, indicating that it must be overriding a virtual function from a base class.</li>
+<li><code>final</code>, indicating that it can not be overridden in a derived class</li>
+<li><code>static</code>, indicating that it is not assosiated with a particular object</li>
+<li>
+<p><code>const</code>, indicating that it may not modify its object</p>
+<p>struct S {
+    [[noreturn]] virtual inline auto f(const unsigned long int *const) -&gt; void const noexcept;
+};</p>
+</li>
+</ul>
+<p>The definition and all declarations for a function must specify the same type. Unfortunately, to preserver C compatibility, a <code>const</code> is ignored at the highest level of an argument type. For example:</p>
+<pre><code>void f(int);        // type is void(int)
+void f(const int);  // type is void(int)
+</code></pre>
+<p><em>Constructors</em> are technically not functions; in particular, they do not return a value, can initialize bases and members and can not have their address taken</p>
+<p><em>Destructors</em> can not be overloaded and can not have their address taken</p>
+<p><em>Function objects</em> are not functions(they are objects) and can not be overloaded, but their <code>operator()</code> are functions</p>
+<p><em>lambda expressions</em> are basically a shorthand for defining function objects.</p>
+<p>A function declaration can also be written using a syntax that places the return type after the argument list. For example, the following two declarations are equivalent:</p>
+<pre><code>string to_string(int a);        // prefix return type
+auto to_strng(int a) -&gt; string; // suffix return type
+</code></pre>
+<p>The essential use for a suffix return type comes in function template declarations in which the return type depends on the arguments, For example</p>
+<pre><code>template&lt;class T, class U&gt;
+auto product(const vector&lt;T&gt;&amp; x, const vector&lt;U&gt;&amp; y) -&gt;decltype(x*y)
+</code></pre>
+<p>There are no <code>void</code> values. However, a call of a void function may be used as the return type of a void function.</p>
+<pre><code>void g(int* p);
+
+void h(int* p) {
+    // ...
+    return g(p);        // OK
+}
+</code></pre>
+<p>A return-statement is one of five ways of exiting a function:</p>
+<ul>
+<li>Exectuting a return statement</li>
+<li>"Falling off the end" of a function; that is, simply reacing the end of the function body. This is allowed only in function that are not declared to return a value(<code>void</code> functions and in <code>main()</code>, where falling off the end indicates successful completion)</li>
+<li>Throwing an exception that isn't caught locally</li>
+<li>Terminating because an exception was thrown and not caught locally in a noexcept function</li>
+<li>Directly or indirectly invoking a system function that does not return(<code>exit()</code>)</li>
+</ul>
+<p>If you want a guarantee that a value is computed at compile time, declare it <code>constexpr</code> and make sure that all functions used in its evaluation are constexpr.</p>
+<p>If an inline function is defined in more than one translation unit(typically because it was defined in a header), its definition in the different translation units must be identical</p>
+<p>By specifying a function <code>constexpr</code>, we indicate that we want it to be usable in constant expressions if given constant expression as arguments.</p>
+<pre><code>constexpr int fac(int n) {
+    return (n &gt; 1) ? n * fac(n - 1) : 1;
+}
+
+constexpr int f9 = fac(9);
+</code></pre>
+<p>Another example:</p>
+<pre><code>void f(int n) {
+    int f5 = fac(5);        // maybe evaluated at compile time
+    int fn = fac(n);        // evaluate at run time
+
+    constexpr int f6 = fac(6);  // must be evaluate at compile time
+    constexpr int fnn = fac(n); // error, can not guarantee compile time evaluation(n is vairable)
+
+    char a[fac(4)];             // OK, array bounds must be constants and fac() is constexpr
+    char a2[fac(n)];            // error: array bounds must be constants and n is a variable
+}
+</code></pre>
+<p>A <code>constexpr</code> function must consist of a single return-statement; no-loops and no local variables are allowed. Also, a constexpr function may not have side effects. That is, a constexpr function is a pure function.</p>
+<p>The rule for a constexpr constructor are suitably different; there, only simple initialization of members is allowed.</p>
+<p>A constexpr function allows recursion and conditional expressions.</p>
+<p>By using literal types, constexpr functions can be defined to use user-defined types.(a class with a constexpr constructor is called a literal type)</p>
+<p>Like inline functions, constexpr functions obey the ODR(one-definition rule), so that definition in the different translation units must be identical. You can think of constexpr function as a restricted form of inline functions</p>
+<p>A construct <code>[[]]</code> is called an attribute and can be placed just about anywhere in the C++ syntax. In general, an attribute specifies some implementation-depedent property about the syntactic entity that precedes it. In addition, an attribute can be placed in front of a declaration. There are only two standard attributes and <code>[[noreturn]]</code> is one of them, the other is <code>[[carries_dependency]]</code></p>
+<pre><code>[[noreturn]] void exit(int);
+</code></pre>
+<p>Initialization of a static local variable does not lead to a data race unless you enter the function containing it recursively or a deadlock occurs. </p>
+<p>The effect of initializing a local static recursively is undefined.</p>
+<pre><code>int fn(int n) {
+    static int n1 = n;      // OK
+    static int n2 = fn(n - 1) + 1;  // undefined
+    return n;
+}
+</code></pre>
+<p>Following the rules for reference initialization, a literal, a constant, and an argument that requires conversion can be passed as a <code>const T&amp;</code> argument, but not as a plain(non-const)T&amp; argument. Allowing conversions for a const T&amp; ensures that such an argument canbe given exactly the same set values as a T argument by passing the value in a temporary.</p>
+<pre><code>float fsqrt(const float&amp; );
+
+void g(double d) {
+    float r = fsqrt(2.0f);      // pass reference to temp holding 2.0f
+    r = fsqrt(r);               // pass reference to r
+    r = fsqrt(d);               // pass reference to temp holding static_cast&lt;float&gt;(d)
+
+}
+</code></pre>
+<p>If you want to pass an array, rather than a container or a pointer to the first element of an array, you can declare a parameter of type reference to array.</p>
+<pre><code>void f(int(&amp;r)[4]);
+</code></pre>
+<p>Note that the number of elements is part of a reference-to-array type. That makes such references far less flexible than pointers and containers(such as vector). The main use references to arrays is in tempaltes, where the number of elements is then deduced.</p>
+<pre><code>template&lt;class T, int N&gt; void f(T(&amp;r)[N]) {
+    // ...
+}
+
+int a1[10];
+double d2[100];
+
+void g() {
+    f(a1);          // T is int, N is 10
+    f(d2);          // T is double, N is 100
+}
+</code></pre>
+<p>A <code>{}</code>-delimited list can be used as an argument to a parameter of:</p>
+<ul>
+<li>Type <code>std::initializer_list&lt;T&gt;</code>, where the values of the list can be implicitly converted to T</li>
+<li>A type that can be initialized with the values provided in the list.</li>
+<li>A reference to an array of T, where the values of the list can be implicitly converted to T.</li>
+</ul>
+<p>If there is a possible ambiguity, an <code>initializer_list</code> parameter takes priority.</p>
+<p>For some functions, it is not possible to specify the number and type of all arguments expected in a call, there are three choices:</p>
+<ul>
+<li>use a <em>variadic template</em>, this allows us to handle an arbitrary number of arbitrary types in a type-safe manner by writing a small template metaprogram that interprets the argument list to determine its meaning and take approriate actions.</li>
+<li>use an <code>initializer_list</code> as the argument type. This allows us to handle an arbitrary number of arguments of a single type in a type safe manner. In many contexts, such homogeneous lists are the most common and important case</li>
+<li>Terminate the argument list with the ellipsis(<code>...</code>), which means "and maybe some more arguments", this allows us to handle an arbitrary number of(almost) arbitrary types by using some macros from <code>&lt;cstdarg&gt;</code>. This solution is not inherently type-safe and can be hard to use with sophisticated user-defined types. However, this mechanism has been used from the earliest days of C.</li>
+</ul>
+<p>An example to illustrate chocie three:</p>
+<pre><code>#include &lt;cstdarg&gt;
+
+void error(int severity ...) {
+    va_list ap;
+    va_start(ap, severity);
+
+    for(;;) {
+        char *p = va_arg(ap, char *);
+        if (p == nullptr) break;
+        cerr &lt;&lt; p &lt;&lt; ' ';
+    }
+
+    va_end(ap);
+
+    cerr &lt;&lt; '\n';
+    if (severity) exit(severity);
+}
+</code></pre>
+<p>A default argument is type checked at the time of the function declaration and evaluated at the time of the call.</p>
+<p>Using the same name for operations on different types is called <em>overloading</em>.</p>
+<p>Overload Function Match Rule</p>
+<ul>
+<li>Exact match; that is, match using no or only trivial conversions(for example, array name to pointer, function name to pointer to function and T to const T)</li>
+<li>Match using promotions; that is, integral promotions(bool to int, char to int, short to int, and their unsigned conterparts) and float to double</li>
+<li>Match using standard conversions, int to double, double to int, double to long double, Derived<em> to Base</em>, T<em> to void</em>, int to unsigned int</li>
+<li>Match using user-defined conversions, double to complex<double></li>
+<li>March using the ellipsis ..., in a function declaration</li>
+</ul>
+<p>Functions declared in different non-namespaces scopes do not overload</p>
+<p>A base class and a derived class provide different scopes so that overloading between a base class function and derived class function does not happen by default.</p>
+<pre><code>struct Base {
+    void f(int);
+};
+
+struct Derived : Base {
+    void f(double);
+};
+
+void g(Derived&amp; d) {
+    d.f(1);     // call Derived::f(double)
+}
+</code></pre>
+<p>A pointer to function does not allow the code to be modified, there are only two things one can do to a function: call it and take its address.</p>
+<p>Dereferencing a pointer to function using <code>*</code> is optional, using <code>&amp;</code> to get the address of a function is optional.</p>
+<p>In pointer assignments, the complete function type must match exactly, it means the argument list type and the return type</p>
+<p>There is no implicit conversion of argument or return types when pointers to functions are assigned or initialized.</p>
+<p>You can take the address of an overloaded function by assigning to or initializing a pointer to function. In that case, the type of the target is used to select from the set of overload functions.</p>
+<pre><code>void f(int);
+int f(char);
+
+void (*pf1)(int) = &amp;f;      // void f(int)
+int (*pf2)(char) = &amp;f;      // int f(char)
+
+void (*pf3)(char) = &amp;f;     // error, no void f(char)
+</code></pre>
+<p>A pointer to a <code>noexcept</code> function can be declared <code>noexcept</code></p>
+<pre><code>void f(int) noexcept;
+void g(int);
+
+void (*p1)(int) = f;            // OK: but we throw away useful information
+void (*p2)(int) noexcept = f;   // OK; we preserve the noexcpet information
+void (*p3)(int) noexcept = g;   // ERROR: we do not know that g does not throw
+</code></pre>
+<p>A pointer to function must reflect the linkage of a function. Neither linkage specification nor <code>noexcept</code> may appear in type alias</p>
+<pre><code>using Pc = extern "C" void (int);// ERROR: linkage specification in alias
+using Pn = void(int) noexcept;  // ERROR: noexcept in alias
+</code></pre>
+<p>Macro names can not be overloaded and the macro prepocessor can not handle recursive calls</p>
+<p>If you muse use a macro, use the scope resolution operator, <code>::</code>, when referring to global names and eclose occurrences of a macro argument name in parentheses whenever possible.</p>
+<p>If you must write macros complicated enough to require comments, it is wise to use <code>/* */</code> comments.</p>
+<p>When writting a macro, it is not unusual to need a new name for something. A string can be created by concatenating two strings using the <code>##</code> macro operator.</p>
+<pre><code>#define NAME(a,b) a##b
+
+int NAME(hack,cah)();
+</code></pre>
+<p>will produce <code>int hackcah()</code>.</p>
+<p>A single <code>#</code> before a parameter name in a replacement string means a string containing the macro argument.</p>
+<pre><code>#define printx(x) cout &lt;&lt; #x "=" &lt;&lt; x &lt;&lt; '\n';
+
+int a = 7;
+string str = "asdf";
+
+void f() {
+    printx(a);  // cout &lt;&lt; "a" &lt;&lt; "=" &lt;&lt; a &lt;&lt; '\n';
+    printx(srt);// cout &lt;&lt; "str" &lt;&lt; "=" &lt;&lt; str &lt;&lt; '\n';
+}
+</code></pre>
+<p>Writing <code>#x "=" rather than</code>#x &lt;&lt; " = "` is obscure clever code rather than an error. Adjacent string literals are concatenated.</p>
+<p><code>#undef x</code> ensures that no macro called X is defined - whether or not one was before the directive.</p>
+<p>Macros can even be variadic. For example:</p>
+<pre><code>#define err_print(...) fprintf(strerr, "err:%s %s\n", __VA_ARGS__)
+</code></pre>
+<p>the ellipsis (<code>...</code>) means tha <code>__VA_ARGS__</code> represents the arguments actually passed as a tring</p>
+<h3>Predefined Macros</h3>
+<ul>
+<li><code>__cplusplus</code>: defined in a C++ compilation(and not in a C compilation), Its value is <code>201103L</code> in a C++11 source program; previous C++ standards have lower values</li>
+<li><code>__DATA__</code>: data in "yyyy:mm:dd" format</li>
+<li><code>__TIME__</code>: time in "hh:mm:ss" format</li>
+<li><code>__FILE__</code>: name of current source file</li>
+<li><code>__LINE__</code>: source line number within the current source file</li>
+<li><code>__FUNC__</code>: an implementation-defned C-style string naming the current function</li>
+<li><code>__STDC_HOSTED__</code>: 1 if the implementation is hosted; otherwise 0</li>
+</ul>
+<p>In addition, a few macros are conditionally defined by the implementation</p>
+<ul>
+<li><code>__STDC__</code>: define in a C compilation(and not in a C++ compilation)</li>
+<li><code>__STDC_MB_MIGHT_NEW_WC__</code>: 1 if in the encoding for wchar_t, a member of the basic character set might have a code value that differs from its value as an ordinary character literal</li>
+<li><code>__STDCPP_STRICT_POINTER_SAFETY__</code>: 1 if the implementation has strict pointer safety; otherwise undefined</li>
+<li><code>__STDCPP_THREADS__</code>: 1 if a program can have more than one thread of execution; otherwise undefined</li>
+</ul>
