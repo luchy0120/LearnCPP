@@ -136,6 +136,29 @@ Most alternatives to visitors in C++ are based on the idea of explicit iteration
 
 ##Construction and Destruction
 
+It is unwise to rely on details of the order of construction and destruction, but you can observe that order by calling virtual functions, `dynamic_cast` or `typeid` at a point where the object is not complete. 
 
+It is best to avoid calling virtual functions during construction and destruction.
+
+##Type Identification
+
+The `dynamic_cast` operator serves most needs for information about the type of an object at run time. Importantly, it ensures that code written using it works correctly with classes derived from those explicitly mentioned by the programmer.
+
+`typeid()` returns a reference to a standard-library type called `type_info` defined in `<typeinfo>`:
+
+*	Given the name of a type as its operand, `typeid(type_name)` returns a reference to a `type_info` that represents the `type_name`; `type_name` must be a completely defined type.
+*	Given an expression as its operand, `typeid(expr)` returns a reference to a `type_info` that represents the type of the object denoted by the `expr`; the `expr` must refer to a completely defined type. If the value of expr is nullptr, typeid(expr) throws a `std::bad_typeid`.
+
+If the operand of `typeid()` is a pointer or a reference of a polymorphic type with the value `nullptr`. `typeid()` throws a `std::bad_typeid`. If the operand of `typeid()` has a nonpolymorphic type or is not an lvalue, the result is determined at compile time without evaluating the operand expression.
+
+If the object denoted by a dereferenced pointer or a reference to a polymorphic type, the `type_info` returned is that of the most derived class for the object, that is, the type used when the object was defined.
+
+###Extended Type Information
+
+Associating typeids with information without modifying system headers allows several people or tools to associate different information with types independently of each other. This is important because the likelihood that someone can come up with a single set of information that satisfies every user is close to zero.
+
+Questions:
+
+It is time to learn the differences between static_cast and dynamic_cast. Currently, the static_cast happens at compile time, and dynamic_cast happens at run time, besieds, the target type of dynamic_cast should be polymorphic in that it need the vptr information, there are three types of dynamic_cast, upcast, downcast, crosscast.
 
 
